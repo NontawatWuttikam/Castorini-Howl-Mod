@@ -73,6 +73,10 @@ fi
 printf "\n\n>>> stitching vocab samples to generate a dataset made up of stitched wakeword samples\n"
 time VOCAB=${VOCAB} INFERENCE_SEQUENCE=${INFERENCE_SEQUENCE} \
   python -m training.run.stitch_vocab_samples \
-  --dataset-path "${POS_DATASET_PATH}"
+  --dataset-path "${POS_DATASET_PATH}" \
+  --max-num-training-samples 10000 \
+#   --max-num-test-samples 10000 \
+#   --max-num-dev-samples 10000 \
+
 
 printf "\n\n>>> Dataset is ready for ${VOCAB}\n"

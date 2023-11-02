@@ -230,7 +230,9 @@ class AudioDataset(tud.Dataset, Generic[GenericTypeT]):
         if header is None:
             log_msg = "Dataset "
         else:
-            log_msg = header + " "
+            print("type header", type(header))
+            # log_msg = header + " " #TODO RM
+            log_msg = "Dataset "
         log_msg += f"({self.dataset_split.value}) - {self.compute_statistics(**compute_statistics_kwargs)}"
 
         Logger.info(log_msg)

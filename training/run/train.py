@@ -1,11 +1,11 @@
 from pathlib import Path
-
+import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim.adamw import AdamW
 from tqdm import tqdm, trange
-
+import soundfile
 from howl.context import InferenceContext
 from howl.data.common.tokenizer import WakeWordTokenizer
 from howl.data.dataloader import StandardAudioDataLoaderBuilder
@@ -31,7 +31,10 @@ from howl.utils.args_utils import ArgOption, ArgumentParserBuilder
 from howl.utils.logger import Logger
 from howl.workspace import Workspace
 
-
+debug = False
+def printd(*t):
+    if debug:
+        print(*t)
 def main():
     """Train or evaluate howl model"""
     # TODO: train.py needs to be refactored
@@ -212,6 +215,7 @@ def main():
             sample_rate=SETTINGS.audio.sample_rate,
             mono=SETTINGS.audio.use_mono,
         )
+        print("USE NOISE DATASET!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         Logger.info(f"Loaded {len(noise_ds.metadata_list)} noise files.")
         noise_ds_train, noise_ds_dev = noise_ds.split(hash_utils.Sha256Splitter(80))
         noise_ds_dev, noise_ds_test = noise_ds_dev.split(hash_utils.Sha256Splitter(50))
@@ -222,6 +226,7 @@ def main():
 
     prep_dl = StandardAudioDataLoaderBuilder(ww_train_ds, collate_fn=batchify).build(1)
     prep_dl.shuffle = True
+    # print("Example batch", ww_train_ds.__getitem__(0))
     train_dl = StandardAudioDataLoaderBuilder(ww_train_ds, collate_fn=audio_augmentations).build(
         SETTINGS.training.batch_size
     )
@@ -283,25 +288,44 @@ def main():
         audio_transform.train()
         model.streaming_state = None
         total_loss = torch.Tensor([0.0]).to(device)
-        for batch in train_dl:
+        for batch in tqdm(train_dl, total=len(train_dl)):
+            printd("do1")
             batch.to(device)
+            # print("batch",batch,batch.audio_data.shape)
+            # for temp_idx in range(len(batch.audio_data)):
+            #     soundfile.write(f'temp_audio/test_{str(time.time())}_class_{batch.labels[temp_idx]}.wav', batch.audio_data[temp_idx].cpu().detach().numpy(), 16000, 'PCM_24')
+            # exit()
+            printd("do2")
             audio_length = audio_transform.compute_lengths(batch.lengths)
+            printd("do3")
             zmuv_audio_data = zmuv_transform(audio_transform(batch.audio_data))
+            printd("do4")
             augmented_audio_data = spectrogram_augmentations(zmuv_audio_data)
+            printd("do5")
+            printd("device", device)
+            printd("use frame", use_frame)
             if use_frame:
+                printd("do6")
                 scores = model(augmented_audio_data, audio_length)
+                printd("do7")
                 loss = criterion(scores, batch.labels)
+                printd("do8")
             else:
                 scores = model(augmented_audio_data, audio_length)
                 scores = F.log_softmax(scores, -1)  # [num_frames x batch_size x num_labels]
                 audio_length = torch.tensor([model.compute_length(x.item()) for x in audio_length]).to(device)
                 loss = criterion(scores, batch.labels, audio_length, batch.label_lengths)
             optimizer.zero_grad()
+            printd("do9")
             model.zero_grad()
+            printd("do10")
             loss.backward()
+            printd("do11")
             optimizer.step()
+            printd("do12")
             with torch.no_grad():
                 total_loss += loss
+            printd("do13")
 
         for group in optimizer.param_groups:
             group["lr"] *= SETTINGS.training.lr_decay

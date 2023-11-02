@@ -1,0 +1,6 @@
+kill -SIGKILL $(ps -aux | grep "python -W ignore -m train" | cut -d' ' -f2)
+kill -SIGKILL $(ps -aux | grep "python -m train" | cut -d' ' -f2)
+kill -SIGKILL $(ps -aux | grep "python -W ignore -m train" | cut -d' ' -f3)
+kill -SIGKILL $(ps -aux | grep "python -m train" | cut -d' ' -f3)
+kill -SIGKILL $(ps -aux | grep "python -W ignore -m train" | cut -d' ' -f4)
+kill -SIGKILL $(ps -aux | grep "python -m train" | cut -d' ' -f4)
