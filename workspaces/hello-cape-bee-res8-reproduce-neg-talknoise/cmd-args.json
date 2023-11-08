@@ -1,0 +1,13 @@
+{
+  "model": "res8",
+  "workspace": "/home/nlpintern1/howl-ws/howl/workspaces/hello-cape-bee-res8-reproduce-neg-talknoise",
+  "load_weights": false,
+  "load_last": false,
+  "dataset_paths": [
+    "/home/nlpintern1/howl-ws/howl/datasets/hello_cape_bee/positive",
+    "/home/nlpintern1/howl-ws/howl/datasets/hello_cape_bee/negative"
+  ],
+  "eval_freq": 10,
+  "eval": false,
+  "use_stitched_datasets": false
+}

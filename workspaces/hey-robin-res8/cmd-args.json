@@ -1,0 +1,12 @@
+{
+  "model": "res8",
+  "workspace": "workspaces/hey-robin-res8",
+  "load_weights": false,
+  "load_last": false,
+  "dataset_paths": [
+    "/home/nlpintern1/howl-ws/howl/datasets/hey_robin/positive"
+  ],
+  "eval_freq": 10,
+  "eval": false,
+  "use_stitched_datasets": true
+}

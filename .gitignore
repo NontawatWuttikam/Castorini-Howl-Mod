@@ -2,3 +2,4 @@ datasets/
 *.pyc
 montreal-forced-aligner
 temp_audio/
+# workspaces/
