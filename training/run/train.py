@@ -120,7 +120,7 @@ def main():
         ArgOption("--load-weights", action="store_true"),
         ArgOption("--load-last", action="store_true"),
         ArgOption("--dataset-paths", "-i", type=str, nargs="+", default=[SETTINGS.dataset.dataset_path],),
-        ArgOption("--eval-freq", type=int, default=10),
+        ArgOption("--eval-freq", type=int, default=1),
         ArgOption("--eval", action="store_true"),
         ArgOption("--use-stitched-datasets", action="store_true"),
     )
@@ -156,6 +156,7 @@ def main():
         ww_dev_ds.extend(dev_ds)
         ww_test_ds.extend(test_ds)
 
+    print("print stat ww")
     ww_train_ds.print_stats(word_searcher=ctx.searcher, compute_length=True)
     ww_dev_ds.print_stats(word_searcher=ctx.searcher, compute_length=True)
     ww_test_ds.print_stats(word_searcher=ctx.searcher, compute_length=True)
@@ -180,6 +181,35 @@ def main():
         ww_dev_ds.print_stats(header=header, word_searcher=ctx.searcher, compute_length=True)
         ww_test_ds.print_stats(header=header, word_searcher=ctx.searcher, compute_length=True)
 
+    print("ww_dev_pos_ds..")
+    # TODO this is a temp function to fix word_searcher bug? its return true if the datapoint contains THE SEQUENCE of wakeword (all words in correct order)
+    def filter_fn(inv=False):
+        def filter_fn_(x):
+            if any([i in SETTINGS._training.vocab for i in x.transcription.lower().replace(","," ").replace("."," ").split(" ")]):
+                # print(any([i in SETTINGS._training.vocab for i in x.transcription.replace(","," ").replace("."," ").split(" ")]))
+                return not inv
+            else: return inv
+        return filter_fn_
+        # return ctx.searcher.search(x.transcription)
+    # ww_dev_pos_ds = ww_dev_ds.filter(lambda x: ctx.searcher.search(x.transcription), clone=True)
+    # ww_dev_pos_ds = ww_dev_ds.filter(filter_fn(False), clone=True)
+    # ww_dev_pos_ds.print_stats(header="dev_pos", word_searcher=ctx.searcher, compute_length=True)
+
+    # print("ww_dev_neg_ds..")
+    # # ww_dev_neg_ds = ww_dev_ds.filter(lambda x: not ctx.searcher.search(x.transcription), clone=True)
+    # ww_dev_neg_ds = ww_dev_ds.filter(filter_fn(True), clone=True)
+    # ww_dev_neg_ds.print_stats(header="dev_neg", word_searcher=ctx.searcher, compute_length=True)
+
+    # print("ww_test_pos_ds..")
+    # # ww_test_pos_ds = ww_test_ds.filter(lambda x: ctx.searcher.search(x.transcription), clone=True)
+    # ww_test_pos_ds = ww_test_ds.filter(filter_fn(False), clone=True)
+    # ww_test_pos_ds.print_stats(header="test_neg", word_searcher=ctx.searcher, compute_length=True)
+
+    # print("ww_test_neg_ds..")
+    # # ww_test_neg_ds = ww_test_ds.filter(lambda x: not ctx.searcher.search(x.transcription), clone=True)
+    # ww_test_neg_ds = ww_test_ds.filter(filter_fn(True), clone=True)
+    # ww_test_neg_ds.print_stats(header="test_neg", word_searcher=ctx.searcher, compute_length=True)
+
     ww_dev_pos_ds = ww_dev_ds.filter(lambda x: ctx.searcher.search(x.transcription), clone=True)
     ww_dev_pos_ds.print_stats(header="dev_pos", word_searcher=ctx.searcher, compute_length=True)
     ww_dev_neg_ds = ww_dev_ds.filter(lambda x: not ctx.searcher.search(x.transcription), clone=True)
@@ -188,7 +218,7 @@ def main():
     ww_test_pos_ds.print_stats(header="test_neg", word_searcher=ctx.searcher, compute_length=True)
     ww_test_neg_ds = ww_test_ds.filter(lambda x: not ctx.searcher.search(x.transcription), clone=True)
     ww_test_neg_ds.print_stats(header="test_neg", word_searcher=ctx.searcher, compute_length=True)
-
+    
     # endregion load datasets
 
     # region create dataloaders with audio preprocessor
@@ -253,6 +283,7 @@ def main():
         model = ConvertedStaticModel(model, 40, 10)
 
     if use_frame:
+        weight = torch.tensor([])
         criterion = nn.CrossEntropyLoss()
     else:
         criterion = nn.CTCLoss(ctx.blank_label)
@@ -293,7 +324,7 @@ def main():
             batch.to(device)
             # print("batch",batch,batch.audio_data.shape)
             # for temp_idx in range(len(batch.audio_data)):
-            #     soundfile.write(f'temp_audio/test_{str(time.time())}_class_{batch.labels[temp_idx]}.wav', batch.audio_data[temp_idx].cpu().detach().numpy(), 16000, 'PCM_24')
+            #     soundfile.write(f'temp_audio/test_{str(time.time())}_class_{batch.labels[temp_idx]}_{temp_idx}.wav', batch.audio_data[temp_idx].cpu().detach().numpy(), 16000, 'PCM_24')
             # exit()
             printd("do2")
             audio_length = audio_transform.compute_lengths(batch.lengths)
@@ -338,10 +369,10 @@ def main():
         # pylint: disable=undefined-loop-variable
         writer.add_scalar("Training/LearningRate", group["lr"], epoch_idx)
 
-        if epoch_idx % args.eval_freq == 0 and epoch_idx != 0:
-            evaluate_engine(
-                ww_dev_pos_ds, "Dev positive", positive_set=True, save=True, write_errors=False,
-            )
+        # if epoch_idx % args.eval_freq == 0 and epoch_idx != 0:
+        evaluate_engine(
+            ww_dev_pos_ds, "Dev positive", positive_set=True, save=True, write_errors=False,
+        )
 
     Logger.heading("Model evaluation")
     do_evaluate()
